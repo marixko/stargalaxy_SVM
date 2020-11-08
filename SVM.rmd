@@ -1,0 +1,18 @@
+---
+title: "R Notebook"
+author: Lilianne Nakazono
+date: 03/11/2020
+output: html_notebook
+---
+
+
+```{r, echo=FALSE}
+install.packages("e1071")
+library("e1071")
+```
+
+Type any R code in the chunk, for example:
+```{r}
+data <- read.csv("tutorial_data.txt")
+```
+
