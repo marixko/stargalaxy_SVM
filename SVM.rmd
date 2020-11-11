@@ -1,18 +1,233 @@
 ---
-title: "R Notebook"
-author: Lilianne Nakazono
-date: 03/11/2020
+title: "Tutorial de Support Vector Machines em R"
+abstract: Este tutorial foi criado para a disciplina "Aprendizagem em altas dimensões" (MAE5904 - IME/USP). O exemplo mostrado neste tutorial é de uma classificação supervisionada de estrelas e galáxias.
+author: Lilianne Nakazono (IAG-USP)
+date: 13/11/2020
 output: html_notebook
 ---
 
 
-```{r, echo=FALSE}
-install.packages("e1071")
+# Pacotes
+
+```{r, message=FALSE, warning=FALSE}
+
+#install.packages("e1071")
 library("e1071")
+
+#install.packages('caret')
+library(caret)
+
+#install.packages('caTools')
+library(caTools)
+
+#install.packages('dplyr')
+library(dplyr)
+
+#install.packages('ggplot2')
+library(ggplot2)
+
+set.seed(42)
 ```
 
-Type any R code in the chunk, for example:
+# Leitura dos Dados
+
+O arquivo tutorial_data.txt contém dados fotométricos de 5000 galáxias (class = GALAXY) e 5000 estrelas (class = STAR) confirmadas espectroscopicamente. As colunas FIELD e ID são colunas identitárias de cada detecção. As colunas RA (ascensão reta) e Dec (declinação) são coordenadas celestes referentes ao sistema equatorial de coordenadas. As colunas de FWHM_n a z_auto referem-se a medidas fotométricas calculadas com base nas imagens e serão nossas variáveis preditoras.
+
 ```{r}
-data <- read.csv("tutorial_data.txt")
+data <- read.csv("tutorial_data.txt", sep=" ")
+data
 ```
 
+```{r}
+dplyr::count(data, class) # para checar o numero de objetos de cada classe
+```
+
+```{r}
+data$class[data$class=="GALAXY"] <- 0 # mudando string "GALAXY" para numerico 0
+data$class[data$class=="STAR"] <- 1 # mudando string "STAR" para numerico 1
+data$class <- as.numeric(data$class)
+```
+
+Tipicamente, estrelas apresentarão menor largura à meia altura do perfil de brilho. Isso é visível pelo plot abaixo:
+
+```{r}
+ggplot(data, aes(x = r_auto, y = FWHM_n, colour = as.factor(class))) +
+  geom_point()
+```
+# Amostra de treinamento/teste
+
+Vamos dividir nossos dados em amostra de treinamento (75%) e amostra de teste (25%):
+
+```{r}
+split <- sample.split(data$class, SplitRatio = 0.75)
+train <- subset(data, split == TRUE)
+test <- subset(data, split == FALSE)
+features <- colnames(train)[5:length(colnames(train))]
+train <- train[features] #amostra de treinamento com variáveis preditoras e variável resposta
+test <- test[features] #amostra de teste com variáveis preditoras e variável resposta
+```
+
+
+# Validação cruzada (amostra treino)
+
+Vamos comparar dois modelos diferentes a partir de uma validação cruzada (5-fold). Treinaremos um primeiro modelo com apenas duas variáveis preditoras (FWHM e r_auto) e um segundo modelo com todas as 15 variáveis preditoras.
+
+```{r}
+folds <- createFolds(train$class, k = 5)
+```
+
+
+```{r}
+
+metrics <- function(y_pred, test_fold){
+  P_star <- posPredValue(y_pred, test_fold, positive="1")*100
+  R_star <- sensitivity(y_pred, test_fold, positive="1")*100
+  F1_star <- (2 * P_star * R_star) / (R_star + R_star)
+  P_gal <- posPredValue(y_pred, test_fold, positive="0")*100
+  R_gal <- sensitivity(y_pred,test_fold, positive="0")*100
+  F1_gal <- (2 * P_gal * R_gal) / (P_gal + R_gal)
+  results <- data.frame(P_star, R_star, F1_star,
+                       P_gal, R_gal, F1_gal)
+  return(results)
+}
+
+```
+
+
+```{r}
+cv_15 = lapply(folds, function(x){
+  features = colnames(train)[1:length(colnames(train))-1]
+  train_folds <- train[-x,]
+  test_fold <- train[x,]
+  clf_15 <- svm(as.factor(class) ~ ., data = train_folds, kernel = 'linear', scale=TRUE)
+  y_pred_15 <- predict(clf_15, newdata = test_fold[features])
+  results_15 <- metrics(as.factor(y_pred_15), as.factor(test_fold[ , "class"]))
+  return(results_15)
+})
+
+cv_2 = lapply(folds, function(x){
+  train_folds <- train[-x,]
+  test_fold <- train[x,]
+  train_folds <- train_folds %>% select("FWHM_n", "r_auto", "class")
+  features_2 <- c("FWHM_n", "r_auto")
+  clf_2 <- svm(as.factor(class) ~ ., data = train_folds, kernel = 'linear', scale=TRUE)
+  y_pred_2 <- predict(clf_2, newdata = test_fold[features_2])
+  results_2 <- metrics(as.factor(y_pred_2), as.factor(test_fold[ , "class"]))
+})
+
+```
+
+```{r}
+
+cat("Resultados da validação cruzada com 2 variáveis preditoras \n")
+cv_2_metrics = rbind(cv_2$Fold1, cv_2$Fold2, cv_2$Fold3, cv_2$Fold4, cv_2$Fold5)
+
+cat(">> Média das métricas dos 5 folds: \n")
+colMeans(cv_2_metrics)
+cat(">> Desvio Padrão das métricas dos 5 folds: \n")
+apply(cv_2_metrics, 2, sd)
+cat("\n")
+
+cat("Resultados da validação cruzada com 16 variáveis preditoras \n")
+cv_15_metrics = rbind(cv_15$Fold1, cv_15$Fold2, cv_15$Fold3, cv_15$Fold4, cv_15$Fold5)
+
+cat(">> Média das métricas dos 5 folds: \n")
+colMeans(cv_15_metrics)
+cat(">> Desvio Padrão das métricas dos 5 folds: \n")
+apply(cv_15_metrics, 2, sd)
+cat("\n")
+
+```
+# Performance (amostra teste)
+
+A partir da comparação entre o modelo treinado com 2 variáveis preditoras e o modelo treinado com 15 variáveis preditoras, escolhemos a que retornou o melhor resultado durante a validação para ser treinado novamente com a amostra de treino inteira. A performance final do modelo é estimada usando-se a amostra teste.
+```{r}
+features = colnames(train)[1:length(colnames(train))-1]
+clf_15 <- svm(as.factor(class) ~ ., data = train, kernel = 'linear')
+y_pred_15 <- predict(clf_15, newdata = test[features])
+```
+
+```{r}
+summary(clf_15)
+```
+
+# Matriz de confusão
+
+```{r}
+confusion_matrix = table(as.factor(test[,"class"]), as.factor(y_pred_15))
+confusion_matrix
+```
+```{r}
+metrics(as.factor(test[,"class"]), as.factor(y_pred_15))
+```
+
+# Extra: Plots para o modelo com 2 variáveis preditoras
+
+```{r}
+
+features_2 <- c("r_auto","FWHM_n", "class")
+clf_2 <- svm(as.factor(class) ~ ., data = train[features_2], kernel = 'linear', scale=TRUE)
+y_pred_2 <- predict(clf_2, newdata = test[features_2[1:2]])
+
+```
+
+```{r}
+plot(clf_2, train[features_2])
+```
+```{r}
+plot(clf_2, train[features_2] , xlim=c(0.7,5))
+```
+
+```{r}
+# Cálculo da região de decisão
+features_2 <- c("r_auto","FWHM_n")
+train_clf2 <- train[features_2]
+w <- t(clf_2$coefs) %*% clf_2$SV
+s = -w[1]/w[2]
+i <- clf_2$rho/w[2]
+```
+
+```{r, message=FALSE}
+attach(train)
+r_m = mean(r_auto)
+r_sd = sd(r_auto)
+F_m = mean(FWHM_n)
+F_sd = sd(FWHM_n)
+```
+
+```{r}
+ggplot(train, aes(x=scale(r_auto), y=scale(FWHM_n), colour=as.factor(class)))+ylim(-1,1)+
+        geom_point(aes(shape=as.factor(class)), show.legend=FALSE)+
+        geom_point(data= train[clf_2$index,], aes(x=(r_auto-r_m)/r_sd, y=(FWHM_n-F_m)/F_sd , colour="Support Vectors"))+
+        geom_abline(aes(intercept= i, slope=s), col="black")+
+        geom_abline(aes(intercept = (i*w[2]-1)/w[2], slope = s), linetype="dashed")+
+        geom_abline(aes(intercept = (i*w[2]+1)/w[2], slope = s), linetype="dashed")
+
+```
+```{r}
+ggplot(test, aes(x=scale(r_auto), y=scale(FWHM_n), colour=as.factor(class)))+ylim(-1,1)+
+        geom_point(aes(shape=as.factor(class)), show.legend=FALSE)+
+        geom_abline(aes(intercept= i, slope=s), col="black")+
+        geom_abline(aes(intercept = (i*w[2]-1)/w[2], slope = s), linetype="dashed")+
+        geom_abline(aes(intercept = (i*w[2]+1)/w[2], slope = s), linetype="dashed")
+
+```
+# Extra: Tuning de parâmetros do SVM (K-Fold na amostra de teste)
+
+
+```{r}
+tc <- tune.control(cross = 10)
+costs <- c(0.001,0.01,0.1, 1,5,10,100)
+
+start_time <- Sys.time()
+tuning_results <- tune.svm(train, y = train$class, cost = costs, kernel = "linear",
+tunecontrol = tc)
+end_time <- Sys.time()
+elapsed_time <- end_time - start_time
+cat("Tempo percorrido para o tuning:", elapsed_time, "segundos.")
+
+```
+
+```{r}
+summary(tuning_results)
+```
