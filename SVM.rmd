@@ -119,28 +119,28 @@ cv_2 = lapply(folds, function(x){
 
 ```{r}
 
-cat("Resultados da validação cruzada com 2 variáveis preditoras \n")
+cat("Resultados da validacao cruzada com 2 variaveis preditoras \n")
 cv_2_metrics = rbind(cv_2$Fold1, cv_2$Fold2, cv_2$Fold3, cv_2$Fold4, cv_2$Fold5)
 
-cat(">> Média das métricas dos 5 folds: \n")
+cat(">> Media das metricas dos 5 folds: \n")
 colMeans(cv_2_metrics)
-cat(">> Desvio Padrão das métricas dos 5 folds: \n")
+cat(">> Desvio Padrao das metricas dos 5 folds: \n")
 apply(cv_2_metrics, 2, sd)
 cat("\n")
 
-cat("Resultados da validação cruzada com 16 variáveis preditoras \n")
+cat("Resultados da validacao cruzada com 15 variaveis preditoras \n")
 cv_15_metrics = rbind(cv_15$Fold1, cv_15$Fold2, cv_15$Fold3, cv_15$Fold4, cv_15$Fold5)
 
-cat(">> Média das métricas dos 5 folds: \n")
+cat(">> Media das metricas dos 5 folds: \n")
 colMeans(cv_15_metrics)
-cat(">> Desvio Padrão das métricas dos 5 folds: \n")
+cat(">> Desvio Padrão das metricas dos 5 folds: \n")
 apply(cv_15_metrics, 2, sd)
 cat("\n")
 
 ```
 # Performance (amostra teste)
 
-A partir da comparação entre o modelo treinado com 2 variáveis preditoras e o modelo treinado com 15 variáveis preditoras, escolhemos a que retornou o melhor resultado durante a validação para ser treinado novamente com a amostra de treino inteira. A performance final do modelo é estimada usando-se a amostra teste.
+A partir da comparação entre o modelo treinado com 2 variáveis preditoras e o modelo treinado com 15 variáveis preditoras, escolhemos o que retornou o melhor resultado durante a validação, a fim de ser treinado novamente com a amostra de treino inteira. A performance final do modelo é estimada usando-se a amostra teste.
 ```{r}
 features = colnames(train)[1:length(colnames(train))-1]
 clf_15 <- svm(as.factor(class) ~ ., data = train, kernel = 'linear')
@@ -212,7 +212,7 @@ ggplot(test, aes(x=scale(r_auto), y=scale(FWHM_n), colour=as.factor(class)))+yli
         geom_abline(aes(intercept = (i*w[2]+1)/w[2], slope = s), linetype="dashed")
 
 ```
-# Extra: Tuning de parâmetros do SVM (K-Fold na amostra de teste)
+# Extra: Tuning de hiperparâmetros do SVM (K-Fold na amostra de teste)
 
 
 ```{r}
