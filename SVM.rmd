@@ -1,11 +1,10 @@
 ---
 title: "Tutorial de Support Vector Machines em R"
-abstract: Este tutorial foi criado para a disciplina "Aprendizagem em altas dimensões" (MAE5904 - IME/USP). O exemplo mostrado neste tutorial é de uma classificação supervisionada de estrelas e galáxias.
-author: Lilianne Nakazono (IAG-USP)
-date: 13/11/2020
+abstract: "Este tutorial foi criado para a disciplina "Aprendizagem em altas dimensões" (MAE5904 - IME/USP). Este é um exemplo de classificação suupervisionada de estrelas e galáxias."
+author: Lilianne Nakazono
+date: 03/11/2020
 output: html_notebook
 ---
-
 
 # Pacotes
 
