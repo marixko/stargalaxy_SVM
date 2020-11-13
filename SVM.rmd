@@ -11,7 +11,7 @@ output: html_notebook
 ```{r, message=FALSE, warning=FALSE}
 
 #install.packages("e1071")
-library("e1071")
+library(e1071)
 
 #install.packages('caret')
 library(caret)
@@ -142,7 +142,7 @@ cat("\n")
 A partir da comparação entre o modelo treinado com 2 variáveis preditoras e o modelo treinado com 15 variáveis preditoras, escolhemos o que retornou o melhor resultado durante a validação, a fim de ser treinado novamente com a amostra de treino inteira. A performance final do modelo é estimada usando-se a amostra teste.
 ```{r}
 features = colnames(train)[1:length(colnames(train))-1]
-clf_15 <- svm(as.factor(class) ~ ., data = train, kernel = 'linear')
+clf_15 <- svm(as.factor(class) ~ ., data = train, kernel = 'linear', scale=TRUE)
 y_pred_15 <- predict(clf_15, newdata = test[features])
 ```
 
@@ -211,7 +211,7 @@ ggplot(test, aes(x=scale(r_auto), y=scale(FWHM_n), colour=as.factor(class)))+yli
         geom_abline(aes(intercept = (i*w[2]+1)/w[2], slope = s), linetype="dashed")
 
 ```
-# Extra: Tuning de hiperparâmetros do SVM (K-Fold na amostra de teste)
+# Extra: Tuning de hiperparâmetros do SVM (K-Fold na amostra de treino)
 
 
 ```{r}
