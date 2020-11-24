@@ -81,7 +81,7 @@ folds <- createFolds(train$class, k = 5)
 metrics <- function(y_pred, test_fold){
   P_star <- posPredValue(y_pred, test_fold, positive="1")*100
   R_star <- sensitivity(y_pred, test_fold, positive="1")*100
-  F1_star <- (2 * P_star * R_star) / (R_star + R_star)
+  F1_star <- (2 * P_star * R_star) / (P_star + R_star)
   P_gal <- posPredValue(y_pred, test_fold, positive="0")*100
   R_gal <- sensitivity(y_pred,test_fold, positive="0")*100
   F1_gal <- (2 * P_gal * R_gal) / (P_gal + R_gal)
